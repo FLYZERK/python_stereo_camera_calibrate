@@ -5,7 +5,7 @@ import sys
 from scipy import linalg
 import yaml
 import os
-
+## capture parts are commented out because we are using saved images for calibration instead of live captured images. Uncomment when ready to capture stereo images. 
 #This will contain the calibration settings from the calibration_settings.yaml file
 calibration_settings = {}
 
@@ -217,25 +217,34 @@ def save_frames_two_cams(camera0_name, camera1_name):
     number_to_save = calibration_settings['stereo_calibration_frames']
 
     #open the video streams
-    cap0 = cv.VideoCapture(calibration_settings[camera0_name])
-    cap1 = cv.VideoCapture(calibration_settings[camera1_name])
-
+    #cap0 = cv.VideoCapture(calibration_settings[camera0_name])
+    #cap1 = cv.VideoCapture(calibration_settings[camera1_name])
+    
+    
     #set camera resolutions
     width = calibration_settings['frame_width']
     height = calibration_settings['frame_height']
-    cap0.set(3, width)
-    cap0.set(4, height)
-    cap1.set(3, width)
-    cap1.set(4, height)
+    #cap0.set(3, width)
+    #cap0.set(4, height)
+    #cap1.set(3, width)
+    #cap1.set(4, height)
 
-    cooldown = cooldown_time
-    start = False
+    cooldown=0 #cooldown = cooldown_time
+    start=True #start = False
+    aa=1
     saved_count = 0
     while True:
 
-        ret0, frame0 = cap0.read()
-        ret1, frame1 = cap1.read()
-
+        #ret0, frame0 = cap0.read()
+        #ret1, frame1 = cap1.read()
+        ret0=True
+        ret1=True
+        if aa<<10:
+            frame0=cv.imread(f'l_image00{aa}.png',1)
+            frame1=cv.imread(f'r_image00{aa}.png',1)
+        if aa>=10 and aa<<16:
+            frame0=cv.imread(f'l_image0{aa}.png',1)
+            frame1=cv.imread(f'r_image0{aa}.png',1)
         if not ret0 or not ret1:
             print('Cameras not returning video data. Exiting...')
             quit()
@@ -264,9 +273,10 @@ def save_frames_two_cams(camera0_name, camera1_name):
                 cv.imwrite(savename, frame1)
 
                 saved_count += 1
-                cooldown = cooldown_time
+                #cooldown = cooldown_time
+                aa+=1
 
-        cv.imshow('frame0_small', frame0_small)
+        """cv.imshow('frame0_small', frame0_small)
         cv.imshow('frame1_small', frame1_small)
         k = cv.waitKey(1)
         
@@ -276,7 +286,7 @@ def save_frames_two_cams(camera0_name, camera1_name):
 
         if k == 32:
             #Press spacebar to start data collection
-            start = True
+            start = True"""
 
         #break out of the loop when enough number of frames have been saved
         if saved_count == number_to_save: break
@@ -332,11 +342,11 @@ def stereo_calibrate(mtx0, dist0, mtx1, dist1, frames_prefix_c0, frames_prefix_c
             p0_c1 = corners1[0,0].astype(np.int32)
             p0_c2 = corners2[0,0].astype(np.int32)
 
-            cv.putText(frame0, 'O', (p0_c1[0], p0_c1[1]), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
+            #cv.putText(frame0, 'O', (p0_c1[0], p0_c1[1]), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
             cv.drawChessboardCorners(frame0, (rows,columns), corners1, c_ret1)
             cv.imshow('img', frame0)
 
-            cv.putText(frame1, 'O', (p0_c2[0], p0_c2[1]), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
+            #cv.putText(frame1, 'O', (p0_c2[0], p0_c2[1]), cv.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 1)
             cv.drawChessboardCorners(frame1, (rows,columns), corners2, c_ret2)
             cv.imshow('img2', frame1)
             k = cv.waitKey(0)
@@ -565,26 +575,26 @@ def save_extrinsic_calibration_parameters(R0, T0, R1, T1, prefix = ''):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 2:
+    """if len(sys.argv) != 2:
         print('Call with settings filename: "python3 calibrate.py calibration_settings.yaml"')
-        quit()
+        quit()"""
     
     #Open and parse the settings file
-    parse_calibration_settings_file(sys.argv[1])
-
+    #parse_calibration_settings_file(sys.argv[1])
+    parse_calibration_settings_file('C:\\Users\\kljke\\OneDrive\\Documentos\\Staj\\ZERK\\stereo\\trial\\trial\\calibration_settings.yaml')
 
     """Step1. Save calibration frames for single cameras"""
-    save_frames_single_camera('camera0') #save frames for camera0
-    save_frames_single_camera('camera1') #save frames for camera1
+    #save_frames_single_camera('camera0') #save frames for camera0
+    #save_frames_single_camera('camera1') #save frames for camera1
 
 
     """Step2. Obtain camera intrinsic matrices and save them"""
     #camera0 intrinsics
-    images_prefix = os.path.join('frames', 'camera0*')
+    images_prefix = os.path.join('l_*')
     cmtx0, dist0 = calibrate_camera_for_intrinsic_parameters(images_prefix) 
     save_camera_intrinsics(cmtx0, dist0, 'camera0') #this will write cmtx and dist to disk
     #camera1 intrinsics
-    images_prefix = os.path.join('frames', 'camera1*')
+    images_prefix = os.path.join('r_*')
     cmtx1, dist1 = calibrate_camera_for_intrinsic_parameters(images_prefix)
     save_camera_intrinsics(cmtx1, dist1, 'camera1') #this will write cmtx and dist to disk
 
@@ -609,7 +619,7 @@ if __name__ == '__main__':
     #check your calibration makes sense
     camera0_data = [cmtx0, dist0, R0, T0]
     camera1_data = [cmtx1, dist1, R1, T1]
-    check_calibration('camera0', camera0_data, 'camera1', camera1_data, _zshift = 60.)
+    #check_calibration('camera0', camera0_data, 'camera1', camera1_data, _zshift = 60.)
 
 
     """Optional. Define a different origin point and save the calibration data"""
